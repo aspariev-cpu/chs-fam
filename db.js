@@ -131,4 +131,28 @@ async function removeFromBlacklist(static_id, reason, userId, userName) {
     return { success: true };
 }
 
-module.exports = { initDB, getDB, addToBlacklist, checkStatic, removeFromBlacklist };
+// Получить список активных записей с пагинацией
+async function getActiveList(page = 1, pageSize = 10) {
+    const db = getDB();
+    const offset = (page - 1) * pageSize;
+    
+    // Получаем общее количество записей
+    const totalCount = await db.get(`SELECT COUNT(*) as count FROM blacklist_active`);
+    const total = totalCount.count;
+    
+    // Получаем записи для текущей страницы (сортировка: сначала новые)
+    const items = await db.all(
+        `SELECT * FROM blacklist_active ORDER BY added_at DESC LIMIT ? OFFSET ?`,
+        [pageSize, offset]
+    );
+    
+    return {
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+    };
+}
+
+module.exports = { initDB, getDB, addToBlacklist, checkStatic, removeFromBlacklist, getActiveList };
