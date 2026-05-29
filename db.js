@@ -46,6 +46,11 @@ function getDB() {
     return db;
 }
 
+// Получить прямой доступ к БД (для сложных запросов)
+function getRawDB() {
+    return db;
+}
+
 // Добавить в чёрный список
 async function addToBlacklist(static_id, reason, userId, userName) {
     const db = getDB();
@@ -155,4 +160,38 @@ async function getActiveList(page = 1, pageSize = 10) {
     };
 }
 
-module.exports = { initDB, getDB, addToBlacklist, checkStatic, removeFromBlacklist, getActiveList };
+// Получить количество активных записей
+async function getActiveCount() {
+    const db = getDB();
+    const result = await db.get(`SELECT COUNT(*) as count FROM blacklist_active`);
+    return result.count;
+}
+
+// Получить количество записей в истории
+async function getHistoryCount() {
+    const db = getDB();
+    const result = await db.get(`SELECT COUNT(*) as count FROM blacklist_history`);
+    return result.count;
+}
+
+// Получить последние N активных записей
+async function getRecentActive(limit = 5) {
+    const db = getDB();
+    return await db.all(
+        `SELECT * FROM blacklist_active ORDER BY added_at DESC LIMIT ?`,
+        [limit]
+    );
+}
+
+module.exports = { 
+    initDB, 
+    getDB, 
+    getRawDB, 
+    addToBlacklist, 
+    checkStatic, 
+    removeFromBlacklist, 
+    getActiveList,
+    getActiveCount, 
+    getHistoryCount, 
+    getRecentActive
+};
