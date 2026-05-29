@@ -16,7 +16,11 @@ function getButtonRow() {
             new ButtonBuilder()
                 .setCustomId('check_blacklist')
                 .setLabel('🔍 Проверить')
-                .setStyle(ButtonStyle.Primary)
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('list_blacklist')
+                .setLabel('📋 Список')
+                .setStyle(ButtonStyle.Secondary)
         );
 }
 
@@ -103,11 +107,17 @@ function hasHrRole(interaction) {
     return interaction.member.roles.cache.has(config.ROLE_HR_ID);
 }
 
+// Проверка, может ли пользователь смотреть список (оба имеют доступ)
+function canViewList(interaction) {
+    return hasCouncilRole(interaction) || hasHrRole(interaction);
+}
+
 module.exports = {
     getButtonRow,
     getAddModal,
     getRemoveModal,
     getCheckModal,
     hasCouncilRole,
-    hasHrRole
+    hasHrRole,
+    canViewList
 };
