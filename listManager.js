@@ -17,16 +17,25 @@ function formatDate(dateString) {
 // Создание текстового списка
 async function buildListMessage(page = 1) {
     try {
-        // Прямой запрос к БД в обход возможных кэшей
-        const dbInstance = db.getDB();
+        // Используем прямой доступ к БД через getRawDB
+        const dbInstance = db.getRawDB();
         
-        // Получаем общее количество
+        if (!dbInstance) {
+            return {
+                content: '❌ Ошибка: База данных не инициализирована',
+                components: []
+            };
+        }
+        
+        // Прямой SQL запрос
         const totalResult = await dbInstance.get(`SELECT COUNT(*) as total FROM blacklist_active`);
         const total = totalResult.total;
         
+        console.log(`[DEBUG] Всего записей в blacklist_active: ${total}`);
+        
         if (total === 0) {
             return {
-                content: '📋 **Чёрный список**\n\nСписок пуст. Никого нет в ЧС.',
+                content: '📋 **Чёрный список**\n\nСписок пуст. Никого нет в ЧС.\n\n(Проверь, что записи добавлялись через этого бота)',
                 components: []
             };
         }
@@ -35,7 +44,7 @@ async function buildListMessage(page = 1) {
         const offset = (page - 1) * pageSize;
         const totalPages = Math.ceil(total / pageSize);
         
-        // Прямой запрос с сортировкой
+        // Прямой запрос данных
         const items = await dbInstance.all(
             `SELECT static_id, reason, added_by, added_by_name, added_at 
              FROM blacklist_active 
@@ -43,6 +52,8 @@ async function buildListMessage(page = 1) {
              LIMIT ? OFFSET ?`,
             [pageSize, offset]
         );
+        
+        console.log(`[DEBUG] Получено записей для страницы ${page}: ${items.length}`);
         
         let listText = `📋 **Чёрный список (активные) — страница ${page}/${totalPages}**\n\n`;
         
