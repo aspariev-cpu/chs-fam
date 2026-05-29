@@ -1,8 +1,9 @@
 const { Client, GatewayIntentBits, Events, REST, Routes } = require('discord.js');
 const config = require('./config');
 const db = require('./db');
-const { getButtonRow, getAddModal, getRemoveModal, getCheckModal } = require('./buttons');
+const { getButtonRow, getAddModal, getRemoveModal, getCheckModal, canViewList } = require('./buttons');
 const { handleAddModal, handleRemoveModal, handleCheckModal } = require('./modals');
+const { buildListMessage } = require('./listManager');
 const embedBuilder = require('./embedBuilder');
 
 const client = new Client({
@@ -54,6 +55,25 @@ async function registerCommands() {
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isButton()) return;
     
+    // Обработка навигационных кнопок списка (list_page_номер)
+    if (interaction.customId.startsWith('list_page_')) {
+        const page = parseInt(interaction.customId.split('_')[2]);
+        
+        // Проверка прав
+        if (!canViewList(interaction)) {
+            await interaction.reply({
+                content: '❌ У вас нет прав на просмотр списка. Требуется роль "Совет" или "Кадровик".',
+                ephemeral: true
+            });
+            return;
+        }
+        
+        const listMessage = await buildListMessage(page);
+        await interaction.update(listMessage);
+        return;
+    }
+    
+    // Обработка основных кнопок
     switch (interaction.customId) {
         case 'add_blacklist':
             await interaction.showModal(getAddModal());
@@ -63,6 +83,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
             break;
         case 'check_blacklist':
             await interaction.showModal(getCheckModal());
+            break;
+        case 'list_blacklist':
+            // Проверка прав
+            if (!canViewList(interaction)) {
+                await interaction.reply({
+                    content: '❌ У вас нет прав на просмотр списка. Требуется роль "Совет" или "Кадровик".',
+                    ephemeral: true
+                });
+                return;
+            }
+            
+            const listMessage = await buildListMessage(1);
+            await interaction.reply({
+                content: listMessage.content,
+                components: listMessage.components,
+                ephemeral: true
+            });
             break;
     }
 });
